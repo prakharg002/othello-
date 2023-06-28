@@ -62,7 +62,7 @@ public class Othello {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 if (board[i][j] == -1 && isValidMove(i, j)) {
-                    int score = evaluateMove(i, j, k, turn, true);
+                    int score = minimax(i, j, k, Integer.MIN_VALUE, Integer.MAX_VALUE, turn, true);
                     if (score > bestScore) {
                         bestScore = score;
                         bestMove = i * 8 + j;
@@ -107,7 +107,7 @@ public class Othello {
             } else if (board[newRow][newCol] == turn && foundOpponent) {
                 return true;
             } else {
-                break;
+                return false;
             }
 
             newRow += dRow;
@@ -117,31 +117,46 @@ public class Othello {
         return false;
     }
 
-    private int evaluateMove(int row, int col, int k, int currentPlayer, boolean maximizingPlayer) {
+    private int minimax(int row, int col, int depth, int alpha, int beta, int currentPlayer, boolean maximizingPlayer) {
         int[][] tempBoard = copyBoard(board);
         tempBoard[row][col] = currentPlayer;
         flipOpponentPieces(row, col, currentPlayer);
 
-        if (k == 0) {
+        if (depth == 0 || isGameOver()) {
             return boardScore();
         }
 
-        int bestScore = maximizingPlayer ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                if (tempBoard[i][j] == -1 && isValidMove(i, j)) {
-                    int score = evaluateMove(i, j, k - 1, (currentPlayer == 0) ? 1 : 0, !maximizingPlayer);
-                    if (maximizingPlayer) {
-                        bestScore = Math.max(bestScore, score);
-                    } else {
-                        bestScore = Math.min(bestScore, score);
+        if (maximizingPlayer) {
+            int maxScore = Integer.MIN_VALUE;
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    if (tempBoard[i][j] == -1 && isValidMove(i, j)) {
+                        int score = minimax(i, j, depth - 1, alpha, beta, (currentPlayer == 0) ? 1 : 0, false);
+                        maxScore = Math.max(maxScore, score);
+                        alpha = Math.max(alpha, score);
+                        if (beta <= alpha) {
+                            break;
+                        }
                     }
                 }
             }
+            return maxScore;
+        } else {
+            int minScore = Integer.MAX_VALUE;
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    if (tempBoard[i][j] == -1 && isValidMove(i, j)) {
+                        int score = minimax(i, j, depth - 1, alpha, beta, (currentPlayer == 0) ? 1 : 0, true);
+                        minScore = Math.min(minScore, score);
+                        beta = Math.min(beta, score);
+                        if (beta <= alpha) {
+                            break;
+                        }
+                    }
+                }
+            }
+            return minScore;
         }
-
-        return bestScore;
     }
 
     private void flipOpponentPieces(int row, int col, int currentPlayer) {
@@ -165,6 +180,18 @@ public class Othello {
         }
     }
 
+    private boolean isGameOver() {
+        return (bestMove(1) == -1);
+    }
+
+    private int[][] copyBoard(int[][] board) {
+        int[][] copy = new int[8][8];
+        for (int i = 0; i < 8; i++) {
+            System.arraycopy(board[i], 0, copy[i], 0, 8);
+        }
+        return copy;
+    }
+
     public ArrayList<Integer> fullGame(int k) {
         ArrayList<Integer> moves = new ArrayList<>();
         moves.add(turn);
@@ -182,12 +209,7 @@ public class Othello {
         }
 
         updateWinner();
-
         return moves;
-    }
-
-    private boolean isGameOver() {
-        return (bestMove(1) == -1);
     }
 
     private void updateWinner() {
@@ -211,13 +233,5 @@ public class Othello {
         } else {
             winner = -1;
         }
-    }
-
-    private int[][] copyBoard(int[][] board) {
-        int[][] copy = new int[8][8];
-        for (int i = 0; i < 8; i++) {
-            System.arraycopy(board[i], 0, copy[i], 0, 8);
-        }
-        return copy;
     }
 }
